@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - claude/optimistic-hawking-qousx6
   workflow_dispatch:
 
 # Allow the workflow to publish to Pages.
