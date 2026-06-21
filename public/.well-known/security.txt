@@ -1,0 +1,10 @@
+# security.txt — https://securitytxt.org
+# EDIT: replace contact + PGP with your real details before relying on this.
+
+Contact: mailto:hello@shikharmishra.com
+Expires: 2027-06-21T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://shikharmishra.com/.well-known/security.txt
+
+# Coordinated disclosure only. If you've found an issue in something I run,
+# reach out at the contact above. PGP available on request.

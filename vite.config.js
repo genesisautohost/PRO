@@ -5,5 +5,20 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: { host: true, port: 5173 },
-  build: { target: 'es2020', outDir: 'dist', sourcemap: false },
+  build: {
+    target: 'es2020',
+    outDir: 'dist',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split the heavy WebGL stack into its own chunk so the DOM shell
+          // can paint while three.js streams in behind the boot veil.
+          three: ['three'],
+          r3f: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1200,
+  },
 })

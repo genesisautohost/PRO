@@ -1,5 +1,5 @@
+import { lazy, Suspense } from 'react'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
-import Scene from './three/Scene'
 import HUD from './components/HUD'
 import Veil from './components/Veil'
 import Hero from './components/Hero'
@@ -10,13 +10,18 @@ import Arsenal from './components/Arsenal'
 import Contact from './components/Contact'
 import VideoSection from './components/VideoSection'
 
+// three.js + R3F are heavy; defer them so the DOM shell paints immediately.
+const Scene = lazy(() => import('./three/Scene'))
+
 export default function App() {
   useSmoothScroll()
 
   return (
     <>
       <Veil />
-      <Scene />
+      <Suspense fallback={null}>
+        <Scene />
+      </Suspense>
       <div className="atmosphere" />
       <HUD />
 
