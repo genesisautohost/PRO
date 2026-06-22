@@ -39,13 +39,15 @@ export default function App() {
 
         {/* EDIT:VIDEOS — igloo.inc-style scroll-scrubbed 3D video.
             Drop your render at public/media/scroll-3d.mp4 (or change src). */}
-        <ScrollVideo
-          src="/media/scroll-3d.mp4"
-          kicker="phase 01 // disassemble"
-          title="Read the machine"
-          sub="Scroll to take it apart — frame by frame, down to the instruction that breaks."
-          scrollVh={450}
-        />
+        <ErrorBoundary label="ScrollVideo">
+          <ScrollVideo
+            src="/media/scroll-3d.mp4"
+            kicker="phase 01 // disassemble"
+            title="Read the machine"
+            sub="Scroll to take it apart — frame by frame, down to the instruction that breaks."
+            scrollVh={350}
+          />
+        </ErrorBoundary>
 
         <Recon />
         <About />
