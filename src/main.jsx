@@ -31,6 +31,8 @@ window.addEventListener('unhandledrejection', (e) => {
   showError('⚠ promise: ' + (r && r.message ? r.message : String(r)))
 })
 
+console.log('%c0xshikhar build v7', 'color:#ffb454;font:600 14px monospace')
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary
