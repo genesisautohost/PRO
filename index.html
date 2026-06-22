@@ -21,6 +21,50 @@
 
     <title>0xshikhar // RE</title>
 
+    <!-- Inline boot guard: runs BEFORE the module bundle, so it catches even a
+         module-load crash and shows it on screen instead of a silent blank. -->
+    <script>
+      (function () {
+        function show(msg) {
+          var b = document.getElementById('boot-err');
+          if (!b) {
+            b = document.createElement('div');
+            b.id = 'boot-err';
+            b.style.cssText =
+              'position:fixed;left:0;right:0;top:0;z-index:99999;background:#1a0000;color:#ff8a8a;' +
+              'font:12px/1.45 monospace;padding:12px;white-space:pre-wrap;max-height:60vh;overflow:auto;' +
+              'border-bottom:2px solid #ff5d5d';
+            (document.body || document.documentElement).appendChild(b);
+          }
+          b.textContent += msg + '\n';
+        }
+        window.addEventListener('error', function (e) {
+          show('⚠ ' + (e.message || 'error') + (e.filename ? '\n  ' + String(e.filename).split('/').pop() + ':' + e.lineno : ''));
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+          var r = e.reason;
+          show('⚠ promise: ' + (r && r.message ? r.message : String(r)));
+        });
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            var root = document.getElementById('root');
+            if (root && root.children.length === 0) {
+              show('App did not start (root empty). Likely a cached old version or an error above.');
+              var btn = document.createElement('button');
+              btn.textContent = '↻ Reload fresh';
+              btn.style.cssText =
+                'display:block;margin-top:10px;padding:10px 16px;background:#ffb454;color:#0a0c10;' +
+                'border:0;border-radius:4px;font:600 14px monospace';
+              btn.onclick = function () {
+                location.href = location.pathname + '?cb=' + Date.now();
+              };
+              document.getElementById('boot-err').appendChild(btn);
+            }
+          }, 7000);
+        });
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
