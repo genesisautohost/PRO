@@ -48,19 +48,32 @@
         window.addEventListener('load', function () {
           setTimeout(function () {
             var root = document.getElementById('root');
-            if (root && root.children.length === 0) {
-              show('App did not start (root empty). Likely a cached old version or an error above.');
-              var btn = document.createElement('button');
-              btn.textContent = '↻ Reload fresh';
-              btn.style.cssText =
-                'display:block;margin-top:10px;padding:10px 16px;background:#ffb454;color:#0a0c10;' +
-                'border:0;border-radius:4px;font:600 14px monospace';
-              btn.onclick = function () {
-                location.href = location.pathname + '?cb=' + Date.now();
-              };
-              document.getElementById('boot-err').appendChild(btn);
+            if (root && root.children.length > 0) {
+              try { sessionStorage.removeItem('bootReload'); } catch (e) {}
+              return; // app started fine
             }
-          }, 7000);
+            // App didn't start — usually a stale cached index.html pointing at
+            // an old JS file. Auto-reload ONCE with a cache-buster to self-heal.
+            var tried = false;
+            try { tried = sessionStorage.getItem('bootReload') === '1'; } catch (e) {}
+            if (!tried) {
+              try { sessionStorage.setItem('bootReload', '1'); } catch (e) {}
+              location.replace(location.pathname + '?cb=' + Date.now());
+              return;
+            }
+            // Still failing after a fresh reload — show manual recovery.
+            show('App did not start even after a fresh reload. Tap to retry:');
+            var btn = document.createElement('button');
+            btn.textContent = '↻ Hard reload';
+            btn.style.cssText =
+              'display:block;margin-top:10px;padding:10px 16px;background:#ffb454;color:#0a0c10;' +
+              'border:0;border-radius:4px;font:600 14px monospace';
+            btn.onclick = function () {
+              try { sessionStorage.removeItem('bootReload'); } catch (e) {}
+              location.replace(location.pathname + '?cb=' + Date.now());
+            };
+            document.getElementById('boot-err').appendChild(btn);
+          }, 4500);
         });
       })();
     </script>
