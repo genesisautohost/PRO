@@ -48,20 +48,21 @@ export default function ScrollVideo({
     if (video) video.addEventListener('error', onErr, { once: true })
 
     const loop = () => {
-      if (video && video.duration) {
-        const span = track.offsetHeight - window.innerHeight
-        const rect = track.getBoundingClientRect()
-        let progress = span > 0 ? -rect.top / span : 0
-        progress = Math.max(0, Math.min(1, progress))
-        const targetT = progress * video.duration
-        current += (targetT - current) * (reduced ? 1 : 0.2)
-        if (Math.abs(video.currentTime - current) > 0.01) {
-          try {
-            video.currentTime = current
-          } catch (_) {}
-        }
-      }
       raf = requestAnimationFrame(loop)
+      if (!video || !video.duration) return
+      const rect = track.getBoundingClientRect()
+      // Only do decode work while the section is on/near screen.
+      if (rect.bottom < -50 || rect.top > window.innerHeight + 50) return
+      const span = track.offsetHeight - window.innerHeight
+      let progress = span > 0 ? -rect.top / span : 0
+      progress = Math.max(0, Math.min(1, progress))
+      const targetT = progress * video.duration
+      current += (targetT - current) * (reduced ? 1 : 0.25)
+      if (Math.abs(video.currentTime - current) > 0.012) {
+        try {
+          video.currentTime = current
+        } catch (_) {}
+      }
     }
     raf = requestAnimationFrame(loop)
 

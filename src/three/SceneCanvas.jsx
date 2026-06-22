@@ -31,7 +31,8 @@ export default function SceneCanvas() {
     }
 
     renderer.setClearColor(0x0a0c10, 1)
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    // Cap DPR hard on phones — rendering at 2-3x is the main GPU cost.
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2))
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.15
@@ -191,8 +192,8 @@ export default function SceneCanvas() {
       disposables.push(g, mat)
       return p
     }
-    const bitsFar = field(isMobile ? 500 : 1300, 9, 22, 0.03, 0x3a4a5a, 0.5)
-    const bitsNear = field(isMobile ? 220 : 600, 4, 11, 0.045, 0xffb454, 0.55)
+    const bitsFar = field(isMobile ? 260 : 1300, 9, 22, 0.03, 0x3a4a5a, 0.5)
+    const bitsNear = field(isMobile ? 110 : 600, 4, 11, 0.045, 0xffb454, 0.55)
 
     // ---------- interaction state (eased) ----------
     let mx = 0, my = 0, scroll = 0
@@ -210,9 +211,16 @@ export default function SceneCanvas() {
     const clock = new THREE.Clock()
     const tmp = new THREE.Vector3()
     let raf
+    let last = -1
+    const minDelta = isMobile ? 1 / 30 : 0 // cap mobile to ~30fps
 
     const tick = () => {
-      const t = reduced ? 0 : clock.getElapsedTime()
+      raf = requestAnimationFrame(tick)
+      const now = clock.getElapsedTime()
+      if (minDelta && now - last < minDelta) return
+      last = now
+
+      const t = reduced ? 0 : now
       mx += (scrollState.px - mx) * 0.05
       my += (scrollState.py - my) * 0.05
       scroll += (scrollState.scroll - scroll) * 0.06
@@ -247,7 +255,6 @@ export default function SceneCanvas() {
       camera.lookAt(0, 0, 0)
 
       renderer.render(scene, camera)
-      raf = requestAnimationFrame(tick)
     }
     tick()
 
