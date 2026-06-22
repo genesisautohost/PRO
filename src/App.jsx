@@ -9,6 +9,7 @@ import Findings from './components/Findings'
 import Arsenal from './components/Arsenal'
 import Contact from './components/Contact'
 import VideoSection from './components/VideoSection'
+import ScrollVideo from './components/ScrollVideo'
 
 // three.js + R3F are heavy; defer them so the DOM shell paints immediately.
 const Scene = lazy(() => import('./three/Scene'))
@@ -28,12 +29,14 @@ export default function App() {
       <main className="content">
         <Hero />
 
-        {/* EDIT:VIDEOS — drop a clip into /public/media and set src="/media/your.mp4" */}
-        <VideoSection
+        {/* EDIT:VIDEOS — igloo.inc-style scroll-scrubbed 3D video.
+            Drop your render at public/media/scroll-3d.mp4 (or change src). */}
+        <ScrollVideo
+          src="/media/scroll-3d.mp4"
           kicker="phase 01 // disassemble"
           title="Read the machine"
-          sub="Binaries don't lie. I follow the control flow down to the instruction that breaks."
-          // src="/media/disassemble.mp4"
+          sub="Scroll to take it apart — frame by frame, down to the instruction that breaks."
+          scrollVh={450}
         />
 
         <Recon />

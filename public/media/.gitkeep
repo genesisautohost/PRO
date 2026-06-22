@@ -1,3 +1,16 @@
-# Drop your video clips here, e.g. disassemble.mp4 / seam.mp4 / disclose.mp4
-# Then set the matching src="/media/<file>.mp4" on each <VideoSection> in src/App.jsx.
-# Recommended: H.264 MP4, 1920x1080 or 1280x720, muted, short seamless loop, < ~6 MB each.
+# Drop your rendered 3D video here.
+#
+# MAIN scroll-scrubbed hero (igloo.inc style):
+#   filename: scroll-3d.mp4   (referenced by <ScrollVideo> in src/App.jsx)
+#   Scroll position drives playback frame-by-frame — so render a clean,
+#   self-contained 0->end animation (no need to loop).
+#
+# Encoding tips for smooth scroll-scrubbing (esp. on mobile/iOS):
+#   - H.264 MP4, yuv420p, faststart
+#   - Short keyframe interval so seeking is cheap (a keyframe every ~5-10 frames)
+#     e.g. ffmpeg:  -c:v libx264 -pix_fmt yuv420p -g 6 -movflags +faststart
+#   - 1080p or 720p, ~8-20s, muted, < ~10-15 MB
+#   - Also export a poster frame (scroll-3d-poster.jpg) if you want a first frame.
+#
+# Optional extra panels (static): disassemble.mp4 / seam.mp4 / disclose.mp4
+# referenced by <VideoSection> — set their src in src/App.jsx.
