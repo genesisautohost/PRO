@@ -15,10 +15,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Split the heavy WebGL stack into its own chunk so the DOM shell
-          // can paint while three.js streams in behind the boot veil.
+          // Isolate three.js so the DOM shell can paint while it streams in.
           three: ['three'],
-          r3f: ['@react-three/fiber', '@react-three/drei', '@react-three/postprocessing', 'postprocessing'],
         },
       },
     },
