@@ -52,12 +52,15 @@ export default function App() {
         <Recon />
         <About />
 
-        <VideoSection
-          src="/media/cinematic.mp4"
-          kicker="phase 02 // every system leaks"
-          title="Find the seam"
-          sub="Auth logic, access control, memory corruption — the gap is always there. I just look harder."
-        />
+        <ErrorBoundary label="ScrollVideo2">
+          <ScrollVideo
+            src="/media/cinematic.mp4"
+            kicker="phase 02 // every system leaks"
+            title="Find the seam"
+            sub="Auth logic, access control, memory corruption — the gap is always there. I just look harder."
+            scrollVh={350}
+          />
+        </ErrorBoundary>
 
         <Findings />
         <Arsenal />
