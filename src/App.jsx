@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { useSmoothScroll } from './hooks/useSmoothScroll'
+import ErrorBoundary from './components/ErrorBoundary'
 import HUD from './components/HUD'
 import Veil from './components/Veil'
 import Hero from './components/Hero'
@@ -20,9 +21,16 @@ export default function App() {
   return (
     <>
       <Veil />
-      <Suspense fallback={null}>
-        <Scene />
-      </Suspense>
+      {/* The WebGL scene is isolated: if three.js/WebGL fails on a device,
+          we fall back to a static dark canvas instead of blanking the page. */}
+      <ErrorBoundary
+        label="Scene"
+        fallback={<div className="scene-canvas" style={{ background: 'var(--bg)' }} />}
+      >
+        <Suspense fallback={null}>
+          <Scene />
+        </Suspense>
+      </ErrorBoundary>
       <div className="atmosphere" />
       <HUD />
 

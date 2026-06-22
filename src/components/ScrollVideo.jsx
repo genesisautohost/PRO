@@ -65,18 +65,22 @@ export default function ScrollVideo({
     let current = 0
 
     const buildTrigger = (duration) => {
-      st = ScrollTrigger.create({
-        trigger: track,
-        start: 'top top',
-        end: 'bottom bottom',
-        pin: stage,
-        pinSpacing: true,
-        scrub: true,
-        onUpdate: (self) => {
-          target = self.progress * (duration || 0)
-        },
-      })
-      ScrollTrigger.refresh()
+      try {
+        st = ScrollTrigger.create({
+          trigger: track,
+          start: 'top top',
+          end: 'bottom bottom',
+          pin: stage,
+          pinSpacing: true,
+          scrub: true,
+          onUpdate: (self) => {
+            target = self.progress * (duration || 0)
+          },
+        })
+        ScrollTrigger.refresh()
+      } catch (err) {
+        console.error('[ScrollVideo] trigger setup failed', err)
+      }
     }
 
     const loop = () => {
