@@ -5,14 +5,14 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 gsap.registerPlugin(ScrollTrigger)
 
 /**
- * igloo.inc-style scroll video — adaptive.
+ * igloo.inc-style scroll-scrubbed video — works on desktop AND phone.
  *
- * Desktop (fine pointer): the clip is pinned full-screen and scroll drives
- * video.currentTime frame-by-frame (eased for smooth scrubbing).
+ * The clip is pinned full-screen while you scroll through a tall track; scroll
+ * progress drives video.currentTime (eased per-frame). Scroll DOWN advances
+ * the playhead, scroll UP rewinds it — bidirectional on every device.
  *
- * Phone / touch (coarse pointer): scrubbing a multi-MB clip via currentTime
- * stutters badly on iOS, so instead the clip just autoplays muted + looped
- * full-screen (buttery, reliable) while the section scrolls normally.
+ * iOS only renders seeked frames once the element has been "primed" by a
+ * play()/pause() inside a user gesture, so we do that on first touch/click.
  *
  * EDIT:VIDEOS — set `src` to your clip in /public/media.
  */
@@ -22,18 +22,12 @@ export default function ScrollVideo({
   kicker,
   title,
   sub,
-  scrollVh = 450,
+  scrollVh = 400,
 }) {
   const trackRef = useRef(null)
   const stageRef = useRef(null)
   const videoRef = useRef(null)
   const [failed, setFailed] = useState(false)
-  // Decide mode once, before paint, so the track height is right immediately.
-  const [isTouch] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820)
-  )
   const hasVideo = src && !failed
 
   useEffect(() => {
@@ -43,28 +37,12 @@ export default function ScrollVideo({
     if (!track || !stage) return
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    // ---- Phone / touch: smooth autoplay loop, no scrub, no pin ----
-    if (isTouch) {
-      if (hasVideo && video) {
-        video.muted = true
-        video.loop = true
-        const tryPlay = () => video.play().catch(() => {})
-        if (video.readyState >= 2) tryPlay()
-        else video.addEventListener('canplay', tryPlay, { once: true })
-        video.addEventListener('error', () => setFailed(true), { once: true })
-        return () => video.removeEventListener('canplay', tryPlay)
-      }
-      return
-    }
-
-    // ---- Desktop: pin + scroll-scrub the playhead ----
     let st
     let raf
     let target = 0
     let current = 0
 
-    const buildTrigger = (duration) => {
+    const build = (duration) => {
       try {
         st = ScrollTrigger.create({
           trigger: track,
@@ -83,9 +61,11 @@ export default function ScrollVideo({
       }
     }
 
+    // Ease the playhead toward the scroll target each frame → smooth scrub
+    // in both directions.
     const loop = () => {
       if (video && video.duration) {
-        current += (target - current) * (reduced ? 1 : 0.18)
+        current += (target - current) * (reduced ? 1 : 0.2)
         if (Math.abs(video.currentTime - current) > 0.01) {
           try {
             video.currentTime = current
@@ -96,36 +76,45 @@ export default function ScrollVideo({
     }
 
     const onReady = () => {
-      buildTrigger(video.duration)
+      build(video.duration)
       try {
         video.currentTime = 0.001
       } catch (_) {}
       raf = requestAnimationFrame(loop)
     }
 
+    // iOS: a muted play()/pause() in a user gesture unlocks frame seeking.
+    const prime = () => {
+      if (!video) return
+      const p = video.play()
+      if (p && p.then) p.then(() => video.pause()).catch(() => {})
+    }
+    window.addEventListener('touchstart', prime, { once: true, passive: true })
+    window.addEventListener('click', prime, { once: true })
+
     if (hasVideo && video) {
       if (video.readyState >= 1 && video.duration) onReady()
       else video.addEventListener('loadedmetadata', onReady, { once: true })
       video.addEventListener('error', () => setFailed(true), { once: true })
     } else {
-      buildTrigger(0)
+      build(0)
     }
 
     return () => {
       if (st) st.kill()
       if (raf) cancelAnimationFrame(raf)
+      window.removeEventListener('touchstart', prime)
+      window.removeEventListener('click', prime)
       if (video) video.removeEventListener('loadedmetadata', onReady)
     }
-  }, [hasVideo, src, isTouch])
-
-  const trackHeight = isTouch ? '100vh' : `${scrollVh}vh`
+  }, [hasVideo, src])
 
   return (
     <section
       className="scrollvideo"
       data-section
       ref={trackRef}
-      style={{ height: trackHeight }}
+      style={{ height: `${scrollVh}vh` }}
     >
       <div className="sv-stage" ref={stageRef}>
         {hasVideo ? (
@@ -136,9 +125,7 @@ export default function ScrollVideo({
             poster={poster}
             muted
             playsInline
-            preload={isTouch ? 'metadata' : 'auto'}
-            autoPlay={isTouch}
-            loop={isTouch}
+            preload="auto"
           />
         ) : (
           <>
@@ -153,14 +140,9 @@ export default function ScrollVideo({
           {kicker && <div className="sv-kicker mono">{kicker}</div>}
           {title && <h2 className="sv-title mono">{title}</h2>}
           {sub && <p className="sv-sub">{sub}</p>}
-          {!hasVideo && (
-            <div className="sv-hint mono">
-              drop your render at <b>/public/media/scroll-3d.mp4</b>
-            </div>
-          )}
         </div>
 
-        {!isTouch && <div className="sv-cue mono">scroll ↓</div>}
+        <div className="sv-cue mono">scroll ↕</div>
       </div>
     </section>
   )

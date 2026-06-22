@@ -7,8 +7,13 @@ import { useAppStore, scrollState } from '../store/useAppStore'
 gsap.registerPlugin(ScrollTrigger)
 
 /**
- * Boots Lenis smooth scrolling and bridges it to GSAP ScrollTrigger and the
- * app store. Returns nothing — it's a side-effect engine mounted once.
+ * Scroll engine.
+ *
+ * Desktop: Lenis smooth scroll, bridged to GSAP ScrollTrigger.
+ * Touch / phone: NO Lenis — native scrolling so the page scrolls freely both
+ * directions (Lenis touch-hijacking is the usual cause of "can't scroll on
+ * mobile"). ScrollTrigger drives pins/scrubs off native scroll on its own.
+ * Either way we mirror scroll progress into scrollState for the 3D + HUD.
  */
 export function useSmoothScroll() {
   const setScroll = useAppStore((s) => s.setScroll)
@@ -17,27 +22,45 @@ export function useSmoothScroll() {
 
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const isTouch =
+      window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820
+    const useLenis = !isTouch && !reduced
 
-    const lenis = new Lenis({
-      duration: 1.1,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: !reduced,
-      syncTouch: false,
-    })
+    const cleanups = []
 
-    // Feed Lenis through GSAP's ticker so ScrollTrigger and Lenis share a clock.
-    lenis.on('scroll', ScrollTrigger.update)
-    const raf = (time) => lenis.raf(time * 1000)
-    gsap.ticker.add(raf)
-    gsap.ticker.lagSmoothing(0)
-
-    lenis.on('scroll', ({ scroll, limit }) => {
+    const setProgress = (scroll, limit) => {
       const p = limit > 0 ? Math.min(scroll / limit, 1) : 0
       scrollState.scroll = p
       setScroll(p)
-    })
+    }
 
-    // Pointer parallax (written to the plain mirror for the 3D hot path).
+    if (useLenis) {
+      const lenis = new Lenis({
+        duration: 1.1,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+      })
+      lenis.on('scroll', ScrollTrigger.update)
+      const raf = (time) => lenis.raf(time * 1000)
+      gsap.ticker.add(raf)
+      gsap.ticker.lagSmoothing(0)
+      lenis.on('scroll', ({ scroll, limit }) => setProgress(scroll, limit))
+      cleanups.push(() => {
+        gsap.ticker.remove(raf)
+        lenis.destroy()
+      })
+    } else {
+      // Native scroll (touch / reduced-motion). ScrollTrigger handles pins on
+      // its own; we just mirror progress for the 3D scene + HUD.
+      const onScroll = () => {
+        const limit = document.documentElement.scrollHeight - window.innerHeight
+        setProgress(window.scrollY || window.pageYOffset || 0, limit)
+      }
+      window.addEventListener('scroll', onScroll, { passive: true })
+      onScroll()
+      cleanups.push(() => window.removeEventListener('scroll', onScroll))
+    }
+
     const onMove = (e) => {
       const x = (e.clientX / window.innerWidth) * 2 - 1
       const y = (e.clientY / window.innerHeight) * 2 - 1
@@ -46,10 +69,9 @@ export function useSmoothScroll() {
       setPointer(x, y)
     }
     window.addEventListener('pointermove', onMove, { passive: true })
+    cleanups.push(() => window.removeEventListener('pointermove', onMove))
 
-    // Track which section owns the viewport → drives 3D scene morph.
-    const sections = gsap.utils.toArray('[data-section]')
-    const triggers = sections.map((el, i) =>
+    const sectionTriggers = gsap.utils.toArray('[data-section]').map((el, i) =>
       ScrollTrigger.create({
         trigger: el,
         start: 'top center',
@@ -63,9 +85,7 @@ export function useSmoothScroll() {
       })
     )
 
-    // Generic scroll-reveal for anything marked .reveal
-    const reveals = gsap.utils.toArray('.reveal')
-    const revealTriggers = reveals.map((el) =>
+    const revealTriggers = gsap.utils.toArray('.reveal').map((el) =>
       ScrollTrigger.create({
         trigger: el,
         start: 'top 85%',
@@ -76,11 +96,9 @@ export function useSmoothScroll() {
     ScrollTrigger.refresh()
 
     return () => {
-      window.removeEventListener('pointermove', onMove)
-      gsap.ticker.remove(raf)
-      triggers.forEach((t) => t.kill())
+      cleanups.forEach((fn) => fn())
+      sectionTriggers.forEach((t) => t.kill())
       revealTriggers.forEach((t) => t.kill())
-      lenis.destroy()
     }
   }, [setScroll, setSection, setPointer])
 }
