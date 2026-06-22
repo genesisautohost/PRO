@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * igloo.inc-style scroll-scrubbed video — robust on desktop AND phone.
+ * Scroll video — adaptive, sharp on both, stable on both.
  *
- * The stage is held in view with CSS `position: sticky` (NOT GSAP pinning,
- * which miscalculates against mobile browser toolbars and can blank the page).
- * A lightweight rAF loop maps the track's scroll progress to video.currentTime,
- * eased — scroll down advances, scroll up rewinds, on every device.
- *
- * iOS only renders seeked frames after a muted play()/pause() inside a user
- * gesture, so we prime it on first touch/click.
+ * Desktop: pinned (CSS sticky) + scroll scrubs video.currentTime frame-by-frame.
+ * Phone:   autoplay muted loop. Scrubbing HD video on a phone holds a growing
+ *          pile of decoded full-res frames → memory crash / blank after a
+ *          while; sequential playback decodes forward cheaply, so it's smooth
+ *          and stable at the SAME 1080p quality. No scrub on touch, by design.
  *
  * EDIT:VIDEOS — set `src` to your clip in /public/media.
  */
+const IS_TOUCH =
+  typeof window !== 'undefined' &&
+  (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820)
+
 export default function ScrollVideo({
   src,
   poster,
@@ -31,27 +33,41 @@ export default function ScrollVideo({
     const video = videoRef.current
     if (!track) return
 
+    const onErr = () => setFailed(true)
+    if (video) video.addEventListener('error', onErr, { once: true })
+
+    // ---- Phone: autoplay loop, no scrub (stable + sharp) ----
+    if (IS_TOUCH) {
+      if (video && hasVideo) {
+        video.muted = true
+        const tryPlay = () => {
+          const p = video.play()
+          if (p && p.then) p.catch(() => {})
+        }
+        if (video.readyState >= 2) tryPlay()
+        else video.addEventListener('canplay', tryPlay, { once: true })
+      }
+      return () => {
+        if (video) video.removeEventListener('error', onErr)
+      }
+    }
+
+    // ---- Desktop: sticky pin + scroll-scrub the playhead ----
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     let raf
     let current = 0
 
-    // iOS: unlock frame-seeking with a muted play/pause in a user gesture.
     const prime = () => {
       if (!video) return
       const p = video.play()
       if (p && p.then) p.then(() => video.pause()).catch(() => {})
     }
-    window.addEventListener('touchstart', prime, { once: true, passive: true })
     window.addEventListener('click', prime, { once: true })
-
-    const onErr = () => setFailed(true)
-    if (video) video.addEventListener('error', onErr, { once: true })
 
     const loop = () => {
       raf = requestAnimationFrame(loop)
       if (!video || !video.duration) return
       const rect = track.getBoundingClientRect()
-      // Only do decode work while the section is on/near screen.
       if (rect.bottom < -50 || rect.top > window.innerHeight + 50) return
       const span = track.offsetHeight - window.innerHeight
       let progress = span > 0 ? -rect.top / span : 0
@@ -68,7 +84,6 @@ export default function ScrollVideo({
 
     return () => {
       if (raf) cancelAnimationFrame(raf)
-      window.removeEventListener('touchstart', prime)
       window.removeEventListener('click', prime)
       if (video) video.removeEventListener('error', onErr)
     }
@@ -79,7 +94,7 @@ export default function ScrollVideo({
       className="scrollvideo"
       data-section
       ref={trackRef}
-      style={{ height: `${scrollVh}vh` }}
+      style={{ height: IS_TOUCH ? '100vh' : `${scrollVh}vh` }}
     >
       <div className="sv-stage">
         {hasVideo ? (
@@ -91,6 +106,8 @@ export default function ScrollVideo({
             muted
             playsInline
             preload="auto"
+            autoPlay={IS_TOUCH}
+            loop={IS_TOUCH}
           />
         ) : (
           <>
@@ -107,7 +124,7 @@ export default function ScrollVideo({
           {sub && <p className="sv-sub">{sub}</p>}
         </div>
 
-        <div className="sv-cue mono">scroll ↕</div>
+        {!IS_TOUCH && <div className="sv-cue mono">scroll ↕</div>}
       </div>
     </section>
   )
