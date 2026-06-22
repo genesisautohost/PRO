@@ -51,6 +51,7 @@ export default function App() {
         <ErrorBoundary label="ScrollVideo">
           <ScrollVideo
             src="/media/scroll-3d.mp4"
+            frames={{ dir: '/media/frames/scroll-3d', count: 85 }}
             kicker="phase 01 // disassemble"
             title="Read the machine"
             sub="Scroll to take it apart — frame by frame, down to the instruction that breaks."
@@ -64,6 +65,7 @@ export default function App() {
         <ErrorBoundary label="ScrollVideo2">
           <ScrollVideo
             src="/media/cinematic.mp4"
+            frames={{ dir: '/media/frames/cinematic', count: 85 }}
             kicker="phase 02 // every system leaks"
             title="Find the seam"
             sub="Auth logic, access control, memory corruption — the gap is always there. I just look harder."
