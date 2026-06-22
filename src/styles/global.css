@@ -61,6 +61,22 @@ a {
   pointer-events: none;
 }
 
+/* Static background for phones (no live WebGL) — depth without GPU cost. */
+.scene-static {
+  background:
+    radial-gradient(80% 60% at 50% 18%, rgba(255, 180, 84, 0.06) 0%, transparent 60%),
+    radial-gradient(120% 120% at 50% 40%, #11161e 0%, #0a0c10 70%);
+}
+.scene-static::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(rgba(255, 180, 84, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 180, 84, 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(110% 80% at 50% 35%, #000 25%, transparent 72%);
+}
+
 /* scanline + vignette atmosphere */
 .atmosphere {
   position: fixed;

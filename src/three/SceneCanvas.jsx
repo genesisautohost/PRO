@@ -208,6 +208,18 @@ export default function SceneCanvas() {
     window.addEventListener('resize', resize)
     resize()
 
+    // Don't crash if the GPU drops the context (tab backgrounded, memory, etc.).
+    let lost = false
+    const onLost = (e) => {
+      e.preventDefault()
+      lost = true
+    }
+    const onRestored = () => {
+      lost = false
+    }
+    canvas.addEventListener('webglcontextlost', onLost, false)
+    canvas.addEventListener('webglcontextrestored', onRestored, false)
+
     const clock = new THREE.Clock()
     const tmp = new THREE.Vector3()
     let raf
@@ -216,6 +228,7 @@ export default function SceneCanvas() {
 
     const tick = () => {
       raf = requestAnimationFrame(tick)
+      if (lost) return
       const now = clock.getElapsedTime()
       if (minDelta && now - last < minDelta) return
       last = now
@@ -261,6 +274,8 @@ export default function SceneCanvas() {
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
+      canvas.removeEventListener('webglcontextlost', onLost)
+      canvas.removeEventListener('webglcontextrestored', onRestored)
       disposables.forEach((d) => d.dispose && d.dispose())
       renderer.dispose()
     }

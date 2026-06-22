@@ -15,22 +15,31 @@ import ScrollVideo from './components/ScrollVideo'
 // three.js scene is heavy; defer it so the DOM shell paints immediately.
 const Scene = lazy(() => import('./three/SceneCanvas'))
 
+// Live WebGL is desktop-only: running it continuously on a phone (alongside
+// the scrubbed videos) exhausts GPU/memory and the browser eventually drops
+// the canvas → blank screen after a while. Phones get a static background.
+const isMobile =
+  typeof window !== 'undefined' &&
+  (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 820)
+
 export default function App() {
   useSmoothScroll()
 
   return (
     <>
       <Veil />
-      {/* The WebGL scene is isolated: if three.js/WebGL fails on a device,
-          we fall back to a static dark canvas instead of blanking the page. */}
-      <ErrorBoundary
-        label="Scene"
-        fallback={<div className="scene-canvas" style={{ background: 'var(--bg)' }} />}
-      >
-        <Suspense fallback={null}>
-          <Scene />
-        </Suspense>
-      </ErrorBoundary>
+      {isMobile ? (
+        <div className="scene-canvas scene-static" />
+      ) : (
+        <ErrorBoundary
+          label="Scene"
+          fallback={<div className="scene-canvas scene-static" />}
+        >
+          <Suspense fallback={null}>
+            <Scene />
+          </Suspense>
+        </ErrorBoundary>
+      )}
       <div className="atmosphere" />
       <HUD />
 
