@@ -43,10 +43,10 @@ export default function App() {
         <About />
 
         <VideoSection
+          src="/media/cinematic.mp4"
           kicker="phase 02 // every system leaks"
           title="Find the seam"
           sub="Auth logic, access control, memory corruption — the gap is always there. I just look harder."
-          // src="/media/seam.mp4"
         />
 
         <Findings />
