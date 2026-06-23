@@ -11,6 +11,7 @@ import Contact from './components/Contact'
 import VideoSection from './components/VideoSection'
 import ScrollVideo from './components/ScrollVideo'
 import Account from './components/Account'
+import AlertPopup from './components/AlertPopup'
 
 // three.js scene is heavy; defer it so the DOM shell paints immediately.
 const Scene = lazy(() => import('./three/SceneCanvas'))
@@ -44,6 +45,9 @@ export default function App() {
       <HUD />
       <ErrorBoundary label="Account">
         <Account />
+      </ErrorBoundary>
+      <ErrorBoundary label="AlertPopup">
+        <AlertPopup />
       </ErrorBoundary>
 
       <main className="content">
