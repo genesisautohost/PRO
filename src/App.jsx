@@ -6,8 +6,6 @@ import Veil from './components/Veil'
 import Hero from './components/Hero'
 import Recon from './components/Recon'
 import About from './components/About'
-import Findings from './components/Findings'
-import HallOfFame from './components/HallOfFame'
 import Arsenal from './components/Arsenal'
 import Contact from './components/Contact'
 import VideoSection from './components/VideoSection'
@@ -78,8 +76,6 @@ export default function App() {
           />
         </ErrorBoundary>
 
-        <Findings />
-        <HallOfFame />
         <Arsenal />
 
         <VideoSection
