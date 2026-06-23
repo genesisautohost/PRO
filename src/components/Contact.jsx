@@ -1,6 +1,7 @@
 /* EDIT:CONTACT — links + PGP. */
 const LINKS = [
   { label: 'Email', href: 'mailto:hello@shikharmishra.com' },
+  { label: 'Instagram', href: 'https://instagram.com/127.0.0.1_8090' },
   { label: 'GitHub', href: '#' },
   { label: 'HackerOne', href: '#' },
   { label: 'X / Twitter', href: '#' },
