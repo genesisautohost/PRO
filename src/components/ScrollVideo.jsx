@@ -59,23 +59,27 @@ export default function ScrollVideo({
       const ctx = canvas && canvas.getContext('2d')
       let imgs = null
       let drawn = -1
+      let lastCur = -1
 
       const sizeCanvas = () => {
         if (!canvas) return
         const dpr = Math.min(window.devicePixelRatio || 1, 2)
         canvas.width = Math.round(canvas.clientWidth * dpr)
         canvas.height = Math.round(canvas.clientHeight * dpr)
-        drawn = -1 // force redraw at new size
+        drawn = -1
+        lastCur = -1 // force redraw at new size
       }
 
-      const draw = (img) => {
+      const draw = (img, alpha) => {
         if (!ctx || !img || !img.complete || !img.naturalWidth) return false
         const cw = canvas.width
         const ch = canvas.height
         const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight)
         const dw = img.naturalWidth * scale
         const dh = img.naturalHeight * scale
+        ctx.globalAlpha = alpha == null ? 1 : alpha
         ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh)
+        ctx.globalAlpha = 1
         return true
       }
 
@@ -87,7 +91,6 @@ export default function ScrollVideo({
           im.src = `${frames.dir}/${pad(i)}.jpg`
           imgs.push(im)
         }
-        // paint the first frame as soon as it's ready
         if (imgs[0]) imgs[0].onload = () => { if (drawn === -1) draw(imgs[0]) }
       }
 
@@ -105,10 +108,16 @@ export default function ScrollVideo({
         if (!canvas.width || !canvas.height) sizeCanvas()
         const target = progress() * (frames.count - 1)
         cur += (target - cur) * (reduced ? 1 : 0.6)
-        const idx = Math.max(0, Math.min(frames.count - 1, Math.round(cur)))
-        if (idx !== drawn) {
-          if (draw(imgs[idx])) drawn = idx // only commit if it actually painted
-        }
+        if (Math.abs(cur - lastCur) < 0.004) return
+        // Cross-fade between the two nearest frames so slow scroll looks
+        // continuous instead of snapping frame-to-frame.
+        const lo = Math.max(0, Math.min(frames.count - 1, Math.floor(cur)))
+        const hi = Math.min(frames.count - 1, lo + 1)
+        const frac = cur - Math.floor(cur)
+        if (!draw(imgs[lo], 1)) return // base not ready → keep previous frame
+        if (hi !== lo && frac > 0.001) draw(imgs[hi], frac)
+        lastCur = cur
+        drawn = lo
       }
       raf = requestAnimationFrame(loop)
       return () => {
