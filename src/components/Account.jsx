@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, BREACH_CHECK_URL } from '../lib/supabase'
 
 /**
  * GitHub/email auth + members-only area, powered by Supabase.
@@ -23,6 +23,9 @@ export default function Account() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [users, setUsers] = useState(null) // admin-only list
   const [usersErr, setUsersErr] = useState(null)
+  const [exposure, setExposure] = useState(null) // breach self-check result
+  const [exposureErr, setExposureErr] = useState(null)
+  const [scanning, setScanning] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -38,6 +41,8 @@ export default function Account() {
       setIsAdmin(false)
       setUsers(null)
       setUsersErr(null)
+      setExposure(null)
+      setExposureErr(null)
       return
     }
     let cancelled = false
@@ -62,6 +67,32 @@ export default function Account() {
       .order('created_at', { ascending: false })
     if (error) return setUsersErr(error.message)
     setUsers(data || [])
+  }
+
+  // Breach self-check: the Edge Function reads the email from the verified
+  // session itself, so there is nothing for the user to type and no way to
+  // check anyone else's address. We only ever get back breach names here.
+  const checkExposure = async () => {
+    setExposureErr(null)
+    setScanning(true)
+    try {
+      const { data: { session: s } } = await supabase.auth.getSession()
+      if (!s) throw new Error('Session expired — log in again.')
+      const res = await fetch(BREACH_CHECK_URL, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${s.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Lookup failed.')
+      setExposure(data)
+    } catch (e) {
+      setExposureErr(e.message || 'Lookup failed.')
+    } finally {
+      setScanning(false)
+    }
   }
 
   const reset = () => {
@@ -133,6 +164,51 @@ export default function Account() {
                   <p>This is the members-only area. Gated content goes here — writeups,
                   private notes, tools. (Pull real protected data from Supabase tables
                   with Row-Level-Security.)</p>
+                </div>
+
+                <div className="acct-exposure">
+                  <div className="acct-kicker">// breach exposure check</div>
+                  <p className="acct-sub">
+                    Check whether <b>your own</b> registered email appears in known data
+                    breaches. We only show <b>which breaches</b> — never passwords or
+                    personal records.
+                  </p>
+                  {!exposure && (
+                    <button className="acct-action" onClick={checkExposure} disabled={scanning}>
+                      {scanning ? 'scanning…' : 'check my exposure'}
+                    </button>
+                  )}
+                  {exposureErr && <div className="acct-err">{exposureErr}</div>}
+                  {exposure && (
+                    <>
+                      {exposure.found === 0 ? (
+                        <div className="acct-msg">
+                          Good news — <b>{exposure.email}</b> wasn't found in any indexed breach.
+                        </div>
+                      ) : (
+                        <>
+                          <div className="acct-count">
+                            {exposure.found} breach{exposure.found === 1 ? '' : 'es'} contain{' '}
+                            <b>{exposure.email}</b>
+                          </div>
+                          <div className="acct-table">
+                            {exposure.breaches.map((b, i) => (
+                              <div className="acct-breach" key={i}>
+                                <div className="acct-bname">{b.name}</div>
+                                {b.info && <div className="acct-binfo">{b.info}</div>}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="acct-sub">
+                            Exposed? Change that password everywhere you reused it and enable 2FA.
+                          </p>
+                        </>
+                      )}
+                      <button className="acct-link" onClick={checkExposure} disabled={scanning}>
+                        {scanning ? 'scanning…' : 're-scan'}
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {isAdmin && (

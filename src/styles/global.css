@@ -991,4 +991,18 @@ a:focus-visible,
 .acct-uemail { color: #d6dbe6; word-break: break-all; }
 .acct-udate { color: #7f8696; white-space: nowrap; }
 
+/* breach exposure self-check */
+.acct-exposure {
+  margin: 16px 0 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.acct-breach {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.acct-breach:last-child { border-bottom: none; }
+.acct-bname { font-size: 13px; color: #ffcf6b; font-weight: 600; }
+.acct-binfo { font-size: 11px; color: #9aa6b8; line-height: 1.5; margin-top: 4px; }
+
 @media (max-width: 720px) { .acct-btn { top: 14px; right: 14px; } }

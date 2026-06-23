@@ -17,3 +17,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     detectSessionInUrl: true,
   },
 })
+
+// Secure breach self-check (Edge Function). Checks ONLY the logged-in user's
+// own confirmed email, server-side; returns breach names/descriptions only.
+export const BREACH_CHECK_URL = `${SUPABASE_URL}/functions/v1/breach-check`
