@@ -38,7 +38,7 @@ export default function Veil() {
     <div className={`veil${gone ? ' gone' : ''}`} aria-hidden={gone}>
       <span className="boot mono">
         $ <b>./recon</b> --target shikharmishra.com
-        <span style={{ color: 'var(--signal)', marginLeft: 8 }}>[build v27 · alert2]</span>
+        <span style={{ color: 'var(--signal)', marginLeft: 8 }}>[build v28 · scrub-fix]</span>
       </span>
       <div className="bar">
         <i ref={barRef} />

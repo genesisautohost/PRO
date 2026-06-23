@@ -70,7 +70,7 @@ export default function AlertPopup() {
       <div className="intrusion-lead">
         Your address has been fingerprinted <b>{count}×</b> in the last 24h.
       </div>
-      <div className="intrusion-sub">// captured activity (redacted)</div>
+      <div className="intrusion-sub">// captured activity</div>
       <div className="intrusion-logs">
         {logs.map((l, i) => (
           <div className="intrusion-row" key={i}>
@@ -80,10 +80,7 @@ export default function AlertPopup() {
           </div>
         ))}
       </div>
-      <div className="intrusion-foot">
-        // simulated — illustrates how exposed an ordinary visit is. nothing here is
-        actually tracked, captured, or stored.
-      </div>
+      <div className="intrusion-foot">// simulated — nothing is actually tracked</div>
       <button className="intrusion-action" onClick={() => setShow(false)}>acknowledge</button>
     </div>
   )

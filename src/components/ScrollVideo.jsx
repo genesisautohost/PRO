@@ -104,9 +104,11 @@ export default function ScrollVideo({
 
       let lastP = -1
       let idleSince = 0
-      let dir = 1
-      const IDLE_MS = 160 // pause this long → start ambient playback
-      const IDLE_SPEED = 0.25 // frames per tick while idle (~15fps feel)
+      let base = 0 // last scroll-driven frame (anchor for ambient drift)
+      let phase = 0 // ambient oscillation phase
+      const IDLE_MS = 200 // pause this long → start gentle ambient drift
+      const IDLE_AMP = 4 // frames of drift each way — small so a swipe never rewinds
+      const IDLE_RATE = 0.025 // oscillation speed (~4s per breath)
 
       const loop = () => {
         raf = requestAnimationFrame(loop)
@@ -122,14 +124,17 @@ export default function ScrollVideo({
         const idle = !reduced && now - idleSince > IDLE_MS
 
         if (idle) {
-          // Ambient ping-pong drift when the user stops scrolling.
-          cur += dir * IDLE_SPEED
-          if (cur >= frames.count - 1) { cur = frames.count - 1; dir = -1 }
-          else if (cur <= 0) { cur = 0; dir = 1 }
+          // Gentle breathing around the spot you stopped at — anchored to `base`
+          // so it stays within a few frames and a swipe never has to rewind.
+          phase += IDLE_RATE
+          let target = base + Math.sin(phase) * IDLE_AMP
+          target = Math.max(0, Math.min(frames.count - 1, target))
+          cur += (target - cur) * 0.08
         } else {
-          dir = 1
+          phase = 0
           const target = p * (frames.count - 1)
           cur += (target - cur) * (reduced ? 1 : 0.6)
+          base = cur // keep the anchor synced to the live scroll position
         }
 
         if (Math.abs(cur - lastCur) < 0.004) return
