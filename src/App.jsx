@@ -11,6 +11,7 @@ import Arsenal from './components/Arsenal'
 import Contact from './components/Contact'
 import VideoSection from './components/VideoSection'
 import ScrollVideo from './components/ScrollVideo'
+import Account from './components/Account'
 
 // three.js scene is heavy; defer it so the DOM shell paints immediately.
 const Scene = lazy(() => import('./three/SceneCanvas'))
@@ -42,6 +43,9 @@ export default function App() {
       )}
       <div className="atmosphere" />
       <HUD />
+      <ErrorBoundary label="Account">
+        <Account />
+      </ErrorBoundary>
 
       <main className="content">
         <Hero />

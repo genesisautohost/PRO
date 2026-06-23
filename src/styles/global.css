@@ -854,3 +854,112 @@ a:focus-visible,
     text-shadow: none;
   }
 }
+
+/* ---------- account / auth ---------- */
+.acct-btn {
+  position: fixed;
+  top: 18px;
+  right: 22px;
+  z-index: 40;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--signal);
+  background: rgba(8, 10, 14, 0.7);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 14px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: border-color 0.3s, color 0.3s;
+}
+.acct-btn:hover { border-color: var(--signal); }
+.acct-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 6, 9, 0.78);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.acct-panel {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 30px 26px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.acct-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+.acct-kicker { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--signal); }
+.acct-title { font-size: 1.5rem; margin: 8px 0 18px; color: var(--fg); font-weight: 500; }
+.acct-sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+.acct-sub b { color: var(--steel); font-weight: 400; }
+.acct-form { display: flex; flex-direction: column; }
+.acct-label { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+.acct-input {
+  background: rgba(8, 10, 14, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 11px 12px;
+  color: var(--fg);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+}
+.acct-input:focus { outline: none; border-color: var(--signal); }
+.acct-action {
+  margin-top: 18px;
+  background: var(--signal);
+  color: #0a0c10;
+  border: none;
+  border-radius: 4px;
+  padding: 12px;
+  font: 600 13px 'JetBrains Mono', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.acct-action:disabled { opacity: 0.5; }
+.acct-link { background: none; border: none; color: var(--steel); font-size: 12px; margin-top: 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace; }
+.acct-err { color: var(--crit); font-size: 12px; margin-top: 12px; }
+.acct-msg { color: var(--steel); font-size: 12px; margin-top: 12px; }
+.acct-oauth { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.acct-oauth button {
+  background: rgba(8, 10, 14, 0.8);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 10px;
+  color: var(--fg);
+  font: 12px 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.acct-oauth button:hover { border-color: var(--steel); }
+.acct-toggle { margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center; }
+.acct-toggle button { background: none; border: none; color: var(--signal); cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.acct-members .acct-gated {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--signal);
+  border-radius: 4px;
+  padding: 14px;
+  margin: 16px 0;
+  color: #aab2c2;
+  font-size: 13px;
+  line-height: 1.6;
+}
+@media (max-width: 720px) { .acct-btn { top: 14px; right: 14px; } }
