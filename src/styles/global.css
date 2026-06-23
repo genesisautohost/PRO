@@ -962,4 +962,33 @@ a:focus-visible,
   font-size: 13px;
   line-height: 1.6;
 }
+/* admin · users list */
+.acct-admin {
+  margin: 16px 0 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.acct-admin .acct-count {
+  font-size: 12px;
+  color: var(--signal);
+  margin: 8px 0;
+}
+.acct-table {
+  max-height: 220px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.acct-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.acct-row:last-child { border-bottom: none; }
+.acct-uemail { color: #d6dbe6; word-break: break-all; }
+.acct-udate { color: #7f8696; white-space: nowrap; }
+
 @media (max-width: 720px) { .acct-btn { top: 14px; right: 14px; } }

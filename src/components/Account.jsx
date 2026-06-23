@@ -20,12 +20,49 @@ export default function Account() {
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState(null)
   const [err, setErr] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [users, setUsers] = useState(null) // admin-only list
+  const [usersErr, setUsersErr] = useState(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s))
     return () => sub.subscription.unsubscribe()
   }, [])
+
+  // When signed in, look up whether this account is an admin. The check is
+  // enforced by the database (RLS) — the UI flag below is only for showing the
+  // panel; the actual "can read everyone" decision happens in Postgres.
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(false)
+      setUsers(null)
+      setUsersErr(null)
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('profiles')
+      .select('is_admin')
+      .eq('id', session.user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setIsAdmin(Boolean(data?.is_admin))
+      })
+    return () => { cancelled = true }
+  }, [session])
+
+  // Admins can read every profile (RLS grants it); everyone else only sees
+  // their own row, so this query is safe to run from the browser.
+  const loadUsers = async () => {
+    setUsersErr(null)
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email, created_at, is_admin')
+      .order('created_at', { ascending: false })
+    if (error) return setUsersErr(error.message)
+    setUsers(data || [])
+  }
 
   const reset = () => {
     setErr(null)
@@ -97,6 +134,35 @@ export default function Account() {
                   private notes, tools. (Pull real protected data from Supabase tables
                   with Row-Level-Security.)</p>
                 </div>
+
+                {isAdmin && (
+                  <div className="acct-admin">
+                    <div className="acct-kicker">// admin · registered users</div>
+                    {!users && (
+                      <button className="acct-action" onClick={loadUsers}>load users</button>
+                    )}
+                    {usersErr && <div className="acct-err">{usersErr}</div>}
+                    {users && (
+                      <>
+                        <div className="acct-count">{users.length} user{users.length === 1 ? '' : 's'}</div>
+                        <div className="acct-table">
+                          {users.map((u, i) => (
+                            <div className="acct-row" key={i}>
+                              <span className="acct-uemail">
+                                {u.email || '(no email)'}{u.is_admin ? ' ★' : ''}
+                              </span>
+                              <span className="acct-udate">
+                                {u.created_at ? new Date(u.created_at).toLocaleDateString() : ''}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                        <button className="acct-link" onClick={loadUsers}>refresh</button>
+                      </>
+                    )}
+                  </div>
+                )}
+
                 <button className="acct-action" onClick={logout}>log out</button>
               </div>
             ) : (
