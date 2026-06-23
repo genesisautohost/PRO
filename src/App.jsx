@@ -55,7 +55,7 @@ export default function App() {
             kicker="phase 01 // disassemble"
             title="Read the machine"
             sub="Scroll to take it apart — frame by frame, down to the instruction that breaks."
-            scrollVh={350}
+            scrollVh={220}
           />
         </ErrorBoundary>
 
@@ -69,7 +69,7 @@ export default function App() {
             kicker="phase 02 // every system leaks"
             title="Find the seam"
             sub="Auth logic, access control, memory corruption — the gap is always there. I just look harder."
-            scrollVh={350}
+            scrollVh={220}
           />
         </ErrorBoundary>
 

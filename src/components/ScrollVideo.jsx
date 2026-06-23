@@ -104,7 +104,7 @@ export default function ScrollVideo({
         if (!imgs || !onScreen()) return
         if (!canvas.width || !canvas.height) sizeCanvas()
         const target = progress() * (frames.count - 1)
-        cur += (target - cur) * (reduced ? 1 : 0.3)
+        cur += (target - cur) * (reduced ? 1 : 0.6)
         const idx = Math.max(0, Math.min(frames.count - 1, Math.round(cur)))
         if (idx !== drawn) {
           if (draw(imgs[idx])) drawn = idx // only commit if it actually painted
@@ -133,7 +133,7 @@ export default function ScrollVideo({
       raf = requestAnimationFrame(loop)
       if (!video || !video.duration || !onScreen()) return
       const targetT = progress() * video.duration
-      cur += (targetT - cur) * (reduced ? 1 : 0.25)
+      cur += (targetT - cur) * (reduced ? 1 : 0.4)
       if (Math.abs(video.currentTime - cur) > 0.012) {
         try {
           video.currentTime = cur
