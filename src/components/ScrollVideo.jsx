@@ -102,15 +102,38 @@ export default function ScrollVideo({
       )
       io.observe(track)
 
+      let lastP = -1
+      let idleSince = 0
+      let dir = 1
+      const IDLE_MS = 160 // pause this long → start ambient playback
+      const IDLE_SPEED = 0.25 // frames per tick while idle (~15fps feel)
+
       const loop = () => {
         raf = requestAnimationFrame(loop)
         if (!imgs || !onScreen()) return
         if (!canvas.width || !canvas.height) sizeCanvas()
-        const target = progress() * (frames.count - 1)
-        cur += (target - cur) * (reduced ? 1 : 0.6)
+
+        const now = performance.now()
+        const p = progress()
+        if (lastP < 0 || Math.abs(p - lastP) > 0.0006) {
+          lastP = p
+          idleSince = now // scroll is moving → reset idle timer
+        }
+        const idle = !reduced && now - idleSince > IDLE_MS
+
+        if (idle) {
+          // Ambient ping-pong drift when the user stops scrolling.
+          cur += dir * IDLE_SPEED
+          if (cur >= frames.count - 1) { cur = frames.count - 1; dir = -1 }
+          else if (cur <= 0) { cur = 0; dir = 1 }
+        } else {
+          dir = 1
+          const target = p * (frames.count - 1)
+          cur += (target - cur) * (reduced ? 1 : 0.6)
+        }
+
         if (Math.abs(cur - lastCur) < 0.004) return
-        // Cross-fade between the two nearest frames so slow scroll looks
-        // continuous instead of snapping frame-to-frame.
+        // Cross-fade the two nearest frames so motion looks continuous.
         const lo = Math.max(0, Math.min(frames.count - 1, Math.floor(cur)))
         const hi = Math.min(frames.count - 1, lo + 1)
         const frac = cur - Math.floor(cur)
