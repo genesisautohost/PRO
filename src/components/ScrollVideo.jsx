@@ -1,17 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
 
 /**
- * igloo.inc-style scroll video — per-frame scrub on every device, stable.
+ * igloo.inc-style scroll video — per-frame scrub on every device.
  *
- * Desktop: scrub the <video> via currentTime (plenty of memory).
- * Phone:   scrub an IMAGE SEQUENCE (pre-exported JPEG frames). This is how
- *          Apple / igloo.inc do mobile scroll-scrub — no video decoder, so it
- *          can't pile up frames in memory and blank the tab. Smooth + sharp.
+ * Desktop: scrub the <video> via currentTime.
+ * Phone:   scrub an image sequence drawn to a <canvas>. Canvas drawImage paints
+ *          each frame OVER the previous one (no clear-to-black between frames),
+ *          so there's none of the flicker an <img> src-swap produces. Frames are
+ *          preloaded; if the next one isn't decoded yet we keep showing the last
+ *          painted frame instead of going blank. Memory-safe (no video decoder).
  *
- * Both pin the stage with CSS sticky and map scroll progress to the frame.
- *
- * EDIT:VIDEOS — `src` is the desktop clip; `frames` = { dir, count } points at
- * the exported JPEG sequence in /public/media/frames/<name>/0001.jpg ...
+ * EDIT:VIDEOS — `src` = desktop clip; `frames` = { dir, count } → JPEG sequence.
  */
 const IS_TOUCH =
   typeof window !== 'undefined' &&
@@ -30,7 +29,7 @@ export default function ScrollVideo({
 }) {
   const trackRef = useRef(null)
   const videoRef = useRef(null)
-  const imgRef = useRef(null)
+  const canvasRef = useRef(null)
   const [failed, setFailed] = useState(false)
 
   const useFrames = IS_TOUCH && frames && frames.count
@@ -54,10 +53,31 @@ export default function ScrollVideo({
       return rect.bottom > -50 && rect.top < window.innerHeight + 50
     }
 
-    // ---------- Phone: image-sequence scrub ----------
+    // ---------- Phone: image sequence on canvas (no flicker) ----------
     if (useFrames) {
-      const imgEl = imgRef.current
+      const canvas = canvasRef.current
+      const ctx = canvas && canvas.getContext('2d')
       let imgs = null
+      let drawn = -1
+
+      const sizeCanvas = () => {
+        if (!canvas) return
+        const dpr = Math.min(window.devicePixelRatio || 1, 2)
+        canvas.width = Math.round(canvas.clientWidth * dpr)
+        canvas.height = Math.round(canvas.clientHeight * dpr)
+        drawn = -1 // force redraw at new size
+      }
+
+      const draw = (img) => {
+        if (!ctx || !img || !img.complete || !img.naturalWidth) return false
+        const cw = canvas.width
+        const ch = canvas.height
+        const scale = Math.max(cw / img.naturalWidth, ch / img.naturalHeight)
+        const dw = img.naturalWidth * scale
+        const dh = img.naturalHeight * scale
+        ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh)
+        return true
+      }
 
       const preload = () => {
         if (imgs) return
@@ -67,9 +87,12 @@ export default function ScrollVideo({
           im.src = `${frames.dir}/${pad(i)}.jpg`
           imgs.push(im)
         }
-        if (imgEl && imgs[0]) imgEl.src = imgs[0].src
+        // paint the first frame as soon as it's ready
+        if (imgs[0]) imgs[0].onload = () => { if (drawn === -1) draw(imgs[0]) }
       }
-      // Only fetch the frames once the section is within ~1.5 screens.
+
+      sizeCanvas()
+      window.addEventListener('resize', sizeCanvas)
       const io = new IntersectionObserver(
         (entries) => entries.forEach((e) => e.isIntersecting && preload()),
         { rootMargin: '150% 0px' }
@@ -79,15 +102,18 @@ export default function ScrollVideo({
       const loop = () => {
         raf = requestAnimationFrame(loop)
         if (!imgs || !onScreen()) return
+        if (!canvas.width || !canvas.height) sizeCanvas()
         const target = progress() * (frames.count - 1)
         cur += (target - cur) * (reduced ? 1 : 0.3)
         const idx = Math.max(0, Math.min(frames.count - 1, Math.round(cur)))
-        const s = imgs[idx] && imgs[idx].src
-        if (imgEl && s && imgEl.getAttribute('src') !== s) imgEl.setAttribute('src', s)
+        if (idx !== drawn) {
+          if (draw(imgs[idx])) drawn = idx // only commit if it actually painted
+        }
       }
       raf = requestAnimationFrame(loop)
       return () => {
         cancelAnimationFrame(raf)
+        window.removeEventListener('resize', sizeCanvas)
         io.disconnect()
       }
     }
@@ -131,7 +157,7 @@ export default function ScrollVideo({
     >
       <div className="sv-stage">
         {useFrames ? (
-          <img ref={imgRef} className="sv-media" alt="" decoding="async" />
+          <canvas ref={canvasRef} className="sv-media" />
         ) : useVideo ? (
           <video
             ref={videoRef}
