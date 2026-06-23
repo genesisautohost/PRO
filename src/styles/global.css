@@ -1062,8 +1062,9 @@ a:focus-visible,
   70%  { box-shadow: 0 0 0 7px rgba(255, 70, 70, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 70, 70, 0); }
 }
-.intrusion-lead { margin: 10px 0; line-height: 1.5; color: #f0e2e2; }
+.intrusion-lead { margin: 10px 0 6px; line-height: 1.5; color: #f0e2e2; }
 .intrusion-lead b { color: #ff6a6a; }
+.intrusion-sub { font-size: 10px; color: #8e9aa6; margin: 6px 0; letter-spacing: 0.03em; }
 .intrusion-logs {
   border: 1px solid rgba(255, 70, 70, 0.18);
   border-radius: 5px;
@@ -1080,9 +1081,10 @@ a:focus-visible,
   padding: 2px 0;
   color: #c9b6b6;
 }
-.it-ts { color: #ff8a8a; }
+.it-ts { color: #ff8a8a; flex: 0 0 auto; }
 .it-ip { color: #ffd2a6; }
-.it-note { color: #8e9aa6; overflow: hidden; text-overflow: ellipsis; }
+.it-act { color: #ffd2a6; flex: 0 0 auto; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+.it-note { color: #b9a6a6; overflow: hidden; text-overflow: ellipsis; }
 .intrusion-foot {
   margin: 10px 0 12px;
   font-size: 10px;

@@ -2,63 +2,67 @@ import { useEffect, useState } from 'react'
 
 /**
  * Themed "intrusion alert" popup — part of the recon demonstration. It shows
- * stylized trace logs to dramatize passive exposure. The activity is SIMULATED
- * (clearly tagged), built from the visitor's own client signals; nothing is
- * actually tracked, logged, or sent anywhere.
+ * stylized trace logs (with redacted **** fields) to dramatize passive
+ * exposure. The activity is SIMULATED (clearly tagged): nothing is actually
+ * tracked, captured, logged, or sent anywhere. The "fingerprinted N×" counter
+ * is just a number kept in localStorage that ticks up a little each visit.
  */
-const PAGES = ['/', '/recon', '/arsenal', '/contact', '/whoami', '/findings']
-const NOTES = [
-  'fingerprint matched',
-  'canvas hash logged',
-  'tz + locale correlated',
-  'referrer chain stored',
-  'GPU signature pinned',
-  'audio hash matched',
-  'viewport profiled',
-  'reconnect — same device',
+const ACTIVITY = [
+  { act: 'visited', tgt: 'facebook.com/profile/****' },
+  { act: 'search', tgt: '"how to **** my ****"' },
+  { act: 'login', tgt: 'g****r@gmail.com' },
+  { act: 'visited', tgt: 'youtube.com/watch?v=****' },
+  { act: 'visited', tgt: 'amazon.in/dp/B0****' },
+  { act: 'typed', tgt: 'password: ********' },
+  { act: 'visited', tgt: 'instagram.com/****' },
+  { act: 'search', tgt: '"**** near me"' },
+  { act: 'opened', tgt: 'wa.me · +91-98****-**42' },
+  { act: 'visited', tgt: 'mail.****.com/inbox' },
+  { act: 'visited', tgt: 'netflix.com/title/****' },
+  { act: 'search', tgt: '"is **** legal in ****"' },
+  { act: 'opened', tgt: 'maps · home → ****' },
+  { act: 'login', tgt: 'paytm · ****6042' },
 ]
 
 function pad(n) { return String(n).padStart(2, '0') }
 
-function buildLogs(count) {
-  const rows = []
+function buildLogs() {
   const now = Date.now()
-  for (let i = 0; i < Math.min(count, 6); i++) {
+  const pool = [...ACTIVITY]
+  const rows = []
+  for (let i = 0; i < 6 && pool.length; i++) {
+    const pick = pool.splice(Math.floor(Math.random() * pool.length), 1)[0]
     const t = new Date(now - Math.floor(Math.random() * 86400000))
-    const ip = [44, 192, 168, 51][i % 4] + '.' +
-      (10 + Math.floor(Math.random() * 240)) + '.' +
-      Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255)
-    rows.push({
-      ts: `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`,
-      ip,
-      page: PAGES[Math.floor(Math.random() * PAGES.length)],
-      note: NOTES[Math.floor(Math.random() * NOTES.length)],
-    })
+    rows.push({ ts: `${pad(t.getHours())}:${pad(t.getMinutes())}:${pad(t.getSeconds())}`, ...pick })
   }
   return rows.sort((a, b) => (a.ts < b.ts ? 1 : -1))
 }
 
+function nextCount() {
+  let prev = parseInt(localStorage.getItem('trace_count') || '', 10)
+  if (!Number.isFinite(prev)) prev = 18 + Math.floor(Math.random() * 8) // base 18–25
+  const next = prev + (1 + Math.floor(Math.random() * 3)) // +1, +2, or +3
+  try { localStorage.setItem('trace_count', String(next)) } catch (_) {}
+  return next
+}
+
 export default function AlertPopup() {
   const [show, setShow] = useState(false)
-  const [count] = useState(() => 19 + Math.floor(Math.random() * 14)) // ~19–32
-  const [logs] = useState(() => buildLogs(6))
+  const [count] = useState(() => {
+    try { return nextCount() } catch (_) { return 23 }
+  })
+  const [logs] = useState(buildLogs)
 
   useEffect(() => {
-    if (sessionStorage.getItem('intrusion_seen') === '1') return
     const t = setTimeout(() => setShow(true), 5200)
     return () => clearTimeout(t)
   }, [])
-
-  const close = () => {
-    sessionStorage.setItem('intrusion_seen', '1')
-    setShow(false)
-  }
 
   if (!show) return null
 
   return (
     <div className="intrusion mono" role="alert">
-      <button className="intrusion-x" onClick={close} aria-label="dismiss">×</button>
+      <button className="intrusion-x" onClick={() => setShow(false)} aria-label="dismiss">×</button>
       <div className="intrusion-head">
         <span className="intrusion-dot" />
         ⚠ PASSIVE TRACE DETECTED
@@ -66,20 +70,21 @@ export default function AlertPopup() {
       <div className="intrusion-lead">
         Your address has been fingerprinted <b>{count}×</b> in the last 24h.
       </div>
+      <div className="intrusion-sub">// captured activity (redacted)</div>
       <div className="intrusion-logs">
         {logs.map((l, i) => (
           <div className="intrusion-row" key={i}>
             <span className="it-ts">{l.ts}</span>
-            <span className="it-ip">{l.ip}</span>
-            <span className="it-note">{l.page} · {l.note}</span>
+            <span className="it-act">{l.act}</span>
+            <span className="it-note">{l.tgt}</span>
           </div>
         ))}
       </div>
       <div className="intrusion-foot">
         // simulated — illustrates how exposed an ordinary visit is. nothing here is
-        actually tracked or stored.
+        actually tracked, captured, or stored.
       </div>
-      <button className="intrusion-action" onClick={close}>acknowledge</button>
+      <button className="intrusion-action" onClick={() => setShow(false)}>acknowledge</button>
     </div>
   )
 }
