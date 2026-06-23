@@ -59,15 +59,6 @@ export default function Account() {
     }
   }
 
-  const oauth = async (provider) => {
-    reset()
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.origin },
-    })
-    if (error) setErr(error.message)
-  }
-
   const forgot = async () => {
     reset()
     if (!email) return setErr('Enter your email first, then tap reset.')
@@ -132,11 +123,6 @@ export default function Account() {
                 {mode === 'login' && (
                   <button type="button" className="acct-link" onClick={forgot}>forgot password?</button>
                 )}
-
-                <div className="acct-oauth">
-                  <button type="button" onClick={() => oauth('github')}>continue with GitHub</button>
-                  <button type="button" onClick={() => oauth('google')}>continue with Google</button>
-                </div>
 
                 <div className="acct-toggle">
                   {mode === 'signup' ? 'already a member?' : 'no account?'}{' '}
