@@ -80,7 +80,7 @@ export default function AlertPopup() {
           </div>
         ))}
       </div>
-      <div className="intrusion-foot">// simulated — nothing is actually tracked</div>
+      <div className="intrusion-foot"></div>
       <button className="intrusion-action" onClick={() => setShow(false)}>acknowledge</button>
     </div>
   )
