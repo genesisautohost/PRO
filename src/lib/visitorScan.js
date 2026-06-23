@@ -53,6 +53,97 @@ function colorGamut() {
   return 'unknown'
 }
 
+// Detects which fonts are installed by measuring text width against fallback
+// fonts — no permission, no API. Returns a summary string.
+function detectFonts() {
+  try {
+    const bases = ['monospace', 'sans-serif', 'serif']
+    const probes = [
+      'Arial', 'Helvetica', 'Helvetica Neue', 'Times New Roman', 'Courier New',
+      'Georgia', 'Verdana', 'Comic Sans MS', 'Impact', 'Tahoma', 'Trebuchet MS',
+      'Calibri', 'Cambria', 'Consolas', 'Segoe UI', 'Roboto', 'Ubuntu',
+      'San Francisco', 'Menlo', 'Monaco', 'DejaVu Sans', 'Noto Sans', 'Arial Black',
+    ]
+    const text = 'mmmmmmmmmmlli'
+    const span = document.createElement('span')
+    span.style.cssText = 'position:absolute;left:-9999px;top:-9999px;font-size:72px;'
+    span.textContent = text
+    document.body.appendChild(span)
+    const baseW = {}
+    bases.forEach((b) => { span.style.fontFamily = b; baseW[b] = [span.offsetWidth, span.offsetHeight] })
+    const found = probes.filter((f) =>
+      bases.some((b) => {
+        span.style.fontFamily = "'" + f + "'," + b
+        return span.offsetWidth !== baseW[b][0] || span.offsetHeight !== baseW[b][1]
+      })
+    )
+    span.remove()
+    if (!found.length) return 'none detected'
+    const head = found.slice(0, 4).join(', ')
+    return found.length + ' detected: ' + head + (found.length > 4 ? ', …' : '')
+  } catch (_) {
+    return 'n/a'
+  }
+}
+
+// Audio-stack fingerprint via OfflineAudioContext — deterministic per
+// device/browser, computed without sound or permission.
+function audioFingerprint() {
+  return new Promise((resolve) => {
+    try {
+      const Ctx = window.OfflineAudioContext || window.webkitOfflineAudioContext
+      if (!Ctx) return resolve('n/a')
+      const ctx = new Ctx(1, 44100, 44100)
+      const osc = ctx.createOscillator()
+      osc.type = 'triangle'
+      osc.frequency.value = 10000
+      const comp = ctx.createDynamicsCompressor()
+      osc.connect(comp)
+      comp.connect(ctx.destination)
+      osc.start(0)
+      ctx.oncomplete = (e) => {
+        const data = e.renderedBuffer.getChannelData(0)
+        let sum = 0
+        for (let i = 4000; i < 5000; i++) sum += Math.abs(data[i])
+        resolve('0x' + ((sum * 1e7) >>> 0).toString(16).toUpperCase().padStart(8, '0'))
+      }
+      ctx.startRendering()
+      setTimeout(() => resolve('n/a'), 1200)
+    } catch (_) {
+      resolve('n/a')
+    }
+  })
+}
+
+// WebRTC pierces NAT to learn local network addresses — the classic leak that
+// can reveal a LAN IP even behind a VPN. Modern browsers mask it as a random
+// *.local mDNS name; we surface whatever the browser hands over.
+function webrtcAddrs() {
+  return new Promise((resolve) => {
+    try {
+      const RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection
+      if (!RTC) return resolve([])
+      const pc = new RTC({ iceServers: [] })
+      const addrs = new Set()
+      pc.createDataChannel('')
+      pc.onicecandidate = (e) => {
+        if (!e || !e.candidate) return
+        const m = /([0-9a-f]{1,4}(:[0-9a-f]{0,4}){2,}|\d{1,3}(\.\d{1,3}){3}|[0-9a-f-]+\.local)/i.exec(
+          e.candidate.candidate
+        )
+        if (m) addrs.add(m[1])
+      }
+      pc.createOffer().then((o) => pc.setLocalDescription(o)).catch(() => {})
+      setTimeout(() => {
+        try { pc.close() } catch (_) {}
+        resolve([...addrs])
+      }, 1400)
+    } catch (_) {
+      resolve([])
+    }
+  })
+}
+
 function canvasFingerprint() {
   try {
     const c = document.createElement('canvas')
@@ -108,6 +199,7 @@ function buildSequence() {
     ['[+] pdf viewer', nav.pdfViewerEnabled ? 'enabled' : 'disabled', false],
     ['[+] do not track', nav.doNotTrack === '1' ? 'on' : 'off — you are trackable', nav.doNotTrack !== '1'],
     ['[+] cookies', nav.cookieEnabled ? 'enabled' : 'disabled', false],
+    ['[!] installed fonts', detectFonts(), true],
     ['[!] canvas fingerprint', canvasFingerprint(), true],
   ]
   if (nav.connection && nav.connection.effectiveType) {
@@ -144,6 +236,20 @@ async function collectAsync(row) {
       const cams = devs.filter((d) => d.kind === 'videoinput').length
       const mics = devs.filter((d) => d.kind === 'audioinput').length
       row('[!] media inputs', cams + ' camera(s), ' + mics + ' microphone(s) detected', true)
+    }
+  } catch (_) {}
+  try {
+    row('[!] audio fingerprint', await audioFingerprint(), true)
+  } catch (_) {}
+  try {
+    const addrs = await webrtcAddrs()
+    if (addrs.length) {
+      const masked = addrs.some((a) => /\.local$/i.test(a))
+      row(
+        '[!] webrtc local addr',
+        addrs.slice(0, 3).join(', ') + (masked ? '  (mDNS-masked — still a leak)' : '  — leaked past NAT/VPN'),
+        true,
+      )
     }
   } catch (_) {}
 }
