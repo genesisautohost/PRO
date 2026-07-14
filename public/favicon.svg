@@ -1,7 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#0a0c10"/>
-  <rect x="3" y="3" width="58" height="58" rx="10" fill="none" stroke="#ffb454" stroke-opacity="0.25" stroke-width="1.5"/>
-  <text x="32" y="34" font-family="'JetBrains Mono', ui-monospace, monospace" font-size="26" font-weight="700"
-        fill="#ffb454" text-anchor="middle" dominant-baseline="central" letter-spacing="-1">0x</text>
-  <rect x="20" y="46" width="24" height="3" rx="1.5" fill="#6fb7c9" fill-opacity="0.8"/>
+  <defs>
+    <radialGradient id="g" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#141a24"/>
+      <stop offset="100%" stop-color="#0a0c10"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+  <rect x="2.5" y="2.5" width="59" height="59" rx="12" fill="none" stroke="#ffb454" stroke-opacity="0.28" stroke-width="1.5"/>
+  <!-- slashed zero -->
+  <ellipse cx="21" cy="30" rx="10.5" ry="14" fill="none" stroke="#ffb454" stroke-width="5.5"/>
+  <line x1="14.5" y1="39" x2="27.5" y2="21" stroke="#ffb454" stroke-width="3.6" stroke-linecap="round"/>
+  <!-- x -->
+  <line x1="38" y1="18" x2="55" y2="42" stroke="#ffb454" stroke-width="5.5" stroke-linecap="round"/>
+  <line x1="55" y1="18" x2="38" y2="42" stroke="#ffb454" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- steel underline -->
+  <rect x="20" y="50" width="24" height="3.5" rx="1.75" fill="#6fb7c9" fill-opacity="0.85"/>
 </svg>

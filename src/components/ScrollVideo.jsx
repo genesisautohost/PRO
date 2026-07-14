@@ -30,6 +30,7 @@ export default function ScrollVideo({
   const trackRef = useRef(null)
   const videoRef = useRef(null)
   const canvasRef = useRef(null)
+  const contentRef = useRef(null)
   const [failed, setFailed] = useState(false)
 
   const useFrames = IS_TOUCH && frames && frames.count
@@ -47,6 +48,13 @@ export default function ScrollVideo({
       const rect = track.getBoundingClientRect()
       const p = span > 0 ? -rect.top / span : 0
       return Math.max(0, Math.min(1, p))
+    }
+    // cinematic layer: media slowly zooms out while the caption counter-drifts
+    const applyDepth = (media, p) => {
+      if (reduced) return
+      if (media) media.style.transform = `scale(${(1.09 - p * 0.09).toFixed(4)})`
+      if (contentRef.current)
+        contentRef.current.style.transform = `translateY(${((0.5 - p) * 36).toFixed(2)}px)`
     }
     const onScreen = () => {
       const rect = track.getBoundingClientRect()
@@ -117,6 +125,7 @@ export default function ScrollVideo({
 
         const now = performance.now()
         const p = progress()
+        applyDepth(canvas, p)
         if (lastP < 0 || Math.abs(p - lastP) > 0.0006) {
           lastP = p
           idleSince = now // scroll is moving → reset idle timer
@@ -169,9 +178,12 @@ export default function ScrollVideo({
     const loop = () => {
       raf = requestAnimationFrame(loop)
       if (!video || !video.duration || !onScreen()) return
-      const targetT = progress() * video.duration
-      cur += (targetT - cur) * (reduced ? 1 : 0.4)
-      if (Math.abs(video.currentTime - cur) > 0.012) {
+      const p = progress()
+      applyDepth(video, p)
+      const targetT = p * video.duration
+      // lower lerp = heavier, more fluid scrub (less frame-snapping)
+      cur += (targetT - cur) * (reduced ? 1 : 0.22)
+      if (Math.abs(video.currentTime - cur) > 0.008) {
         try {
           video.currentTime = cur
         } catch (_) {}
@@ -214,7 +226,7 @@ export default function ScrollVideo({
 
         <div className="sv-scrim" />
 
-        <div className="sv-content">
+        <div className="sv-content" ref={contentRef}>
           {kicker && <div className="sv-kicker mono">{kicker}</div>}
           {title && <h2 className="sv-title mono">{title}</h2>}
           {sub && <p className="sv-sub">{sub}</p>}

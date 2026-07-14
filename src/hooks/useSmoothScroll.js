@@ -36,7 +36,7 @@ export function useSmoothScroll() {
 
     if (useLenis) {
       const lenis = new Lenis({
-        duration: 1.1,
+        duration: 1.45,
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
       })
@@ -85,13 +85,36 @@ export function useSmoothScroll() {
       })
     )
 
-    const revealTriggers = gsap.utils.toArray('.reveal').map((el) =>
-      ScrollTrigger.create({
+    const revealTriggers = gsap.utils.toArray('.reveal').map((el) => {
+      // stagger siblings within the same section so grouped items cascade
+      const section = el.closest('[data-section]')
+      if (section && !reduced) {
+        const idx = Array.from(section.querySelectorAll('.reveal')).indexOf(el)
+        el.style.transitionDelay = `${Math.min(idx, 4) * 110}ms`
+      }
+      return ScrollTrigger.create({
         trigger: el,
         start: 'top 85%',
         onEnter: () => el.classList.add('in'),
       })
-    )
+    })
+
+    // hero drifts up and fades as you scroll past it — anchors the page in
+    // the same scroll-scrubbed language as the video panels
+    let heroTween
+    if (!reduced && document.querySelector('.hero')) {
+      heroTween = gsap.to('.hero', {
+        yPercent: -14,
+        autoAlpha: 0.05,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.hero',
+          start: 'top top',
+          end: '88% top',
+          scrub: true,
+        },
+      })
+    }
 
     ScrollTrigger.refresh()
 
@@ -99,6 +122,10 @@ export function useSmoothScroll() {
       cleanups.forEach((fn) => fn())
       sectionTriggers.forEach((t) => t.kill())
       revealTriggers.forEach((t) => t.kill())
+      if (heroTween) {
+        heroTween.scrollTrigger?.kill()
+        heroTween.kill()
+      }
     }
   }, [setScroll, setSection, setPointer])
 }

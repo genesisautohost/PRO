@@ -583,7 +583,8 @@ section.block {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  will-change: contents;
+  will-change: contents, transform;
+  transform-origin: center;
 }
 .sv-fallback {
   position: absolute;
@@ -816,13 +817,17 @@ a:focus-visible,
 /* ---------- scroll reveal (GSAP toggles .in as fallback) ---------- */
 .reveal {
   opacity: 0;
-  transform: translateY(38px);
+  transform: translateY(46px) scale(0.985);
+  filter: blur(7px);
+  will-change: opacity, transform, filter;
 }
 .reveal.in {
   opacity: 1;
-  transform: translateY(0);
-  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
-    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+  transition: opacity 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.9s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes blink {
@@ -895,6 +900,7 @@ a:focus-visible,
   .reveal {
     opacity: 1;
     transform: none;
+    filter: none;
   }
   .hero h1 {
     text-shadow: none;
