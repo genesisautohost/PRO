@@ -20,13 +20,11 @@ const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3)
  * Boot loader — WebGL edition.
  *
  * Scattered particles converge onto an amber wireframe icosahedron as the
- * boot sequence advances ("reassembling the binary"), orbited by a scanner
- * ring. A DOM terminal line + hex progress counter sit on top. On completion:
- * a quick pulse, then the veil lifts and fully unmounts (GPU freed).
- *
- * The scene is deliberately tiny (one wireframe + one Points cloud, additive
- * blending, no postprocessing) so it boots instantly even on phones; it lives
- * for ~3s total and disposes everything on unmount.
+ * boot sequence advances ("reassembling the binary"). The shell gets a
+ * fresnel rim glow, a steel inner frame counter-rotates inside, and two
+ * particle rings orbit it gyroscope-style. The whole object auto-scales to
+ * fit the viewport (portrait phones included). On completion: a pulse,
+ * then the veil lifts and fully unmounts (GPU freed).
  */
 export default function Veil() {
   const [gone, setGone] = useState(false)
@@ -81,7 +79,7 @@ export default function Veil() {
       return
     }
     renderer.setClearColor(0x0a0c10, 1)
-    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 1.5))
+    renderer.setPixelRatio(isMobile ? Math.min(window.devicePixelRatio, 1.6) : Math.min(window.devicePixelRatio, 1.5))
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 50)
@@ -91,7 +89,7 @@ export default function Veil() {
     scene.add(group)
     const disposables = []
 
-    // -- target shape: icosahedron edges --
+    // -- target shape: icosahedron edges (subtle structural hint) --
     const icoGeo = new THREE.IcosahedronGeometry(1.35, 1)
     const edgeGeo = new THREE.EdgesGeometry(icoGeo)
     disposables.push(icoGeo, edgeGeo)
@@ -104,6 +102,48 @@ export default function Veil() {
     const wire = new THREE.LineSegments(edgeGeo, wireMat)
     group.add(wire)
     disposables.push(wireMat)
+
+    // -- steel inner frame, counter-rotating (depth) --
+    const innerGeo = new THREE.EdgesGeometry(new THREE.IcosahedronGeometry(0.72, 0))
+    const innerMat = new THREE.LineBasicMaterial({
+      color: 0x6fb7c9,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+    })
+    const inner = new THREE.LineSegments(innerGeo, innerMat)
+    group.add(inner)
+    disposables.push(innerGeo, innerMat)
+
+    // -- fresnel rim shell: soft energy edge around the sphere --
+    const rimGeo = new THREE.IcosahedronGeometry(1.37, 3)
+    const rimMat = new THREE.ShaderMaterial({
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.FrontSide,
+      uniforms: {
+        uOpacity: { value: 0 },
+        uColor: { value: new THREE.Color(0xffb454) },
+      },
+      vertexShader: `
+        varying float vRim;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vec3 n = normalize(normalMatrix * normal);
+          vec3 v = normalize(-mv.xyz);
+          vRim = pow(1.0 - abs(dot(n, v)), 2.8);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        varying float vRim;
+        uniform float uOpacity;
+        uniform vec3 uColor;
+        void main() { gl_FragColor = vec4(uColor, vRim * uOpacity); }`,
+    })
+    const rim = new THREE.Mesh(rimGeo, rimMat)
+    group.add(rim)
+    disposables.push(rimGeo, rimMat)
 
     // -- glow sprite texture --
     const dotTex = (() => {
@@ -123,7 +163,7 @@ export default function Veil() {
     disposables.push(dotTex)
 
     // -- particles: scattered shell → points along the icosahedron edges --
-    const COUNT = isMobile ? 550 : 1400
+    const COUNT = isMobile ? 1100 : 2200
     const ep = edgeGeo.attributes.position.array
     const EDGES = ep.length / 6
     const starts = new Float32Array(COUNT * 3)
@@ -158,11 +198,11 @@ export default function Veil() {
     ptsGeo.setAttribute('position', new THREE.BufferAttribute(starts.slice(), 3))
     ptsGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
     const ptsMat = new THREE.PointsMaterial({
-      size: 0.05,
+      size: 0.042,
       map: dotTex,
       vertexColors: true,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.95,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
@@ -170,37 +210,73 @@ export default function Veil() {
     group.add(pts)
     disposables.push(ptsGeo, ptsMat)
 
-    // -- scanner ring --
-    const ringPts = []
-    for (let i = 0; i <= 96; i++) {
-      const a = (i / 96) * Math.PI * 2
-      ringPts.push(new THREE.Vector3(Math.cos(a) * 2.2, Math.sin(a) * 2.2, 0))
+    // -- orbit rings: glowing particles, not drawn lines --
+    const ringPoints = (radius, count, color, size) => {
+      const a = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) {
+        const th = (i / count) * Math.PI * 2 + Math.random() * 0.03
+        const r = radius + (Math.random() - 0.5) * 0.07
+        a[i * 3] = Math.cos(th) * r
+        a[i * 3 + 1] = Math.sin(th) * r
+        a[i * 3 + 2] = (Math.random() - 0.5) * 0.03
+      }
+      const g = new THREE.BufferGeometry()
+      g.setAttribute('position', new THREE.BufferAttribute(a, 3))
+      const m = new THREE.PointsMaterial({
+        color,
+        size,
+        map: dotTex,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+      const p = new THREE.Points(g, m)
+      disposables.push(g, m)
+      return p
     }
-    const ringGeo = new THREE.BufferGeometry().setFromPoints(ringPts)
-    const ringMat = new THREE.LineBasicMaterial({
-      color: 0x6fb7c9,
-      transparent: true,
-      opacity: 0.22,
-      blending: THREE.AdditiveBlending,
-    })
-    const ring = new THREE.Line(ringGeo, ringMat)
-    ring.rotation.x = Math.PI * 0.42
-    group.add(ring)
-    disposables.push(ringGeo, ringMat)
+    const ringA = ringPoints(1.88, 170, 0xffc878, 0.05)
+    ringA.rotation.x = Math.PI * 0.42
+    const ringB = ringPoints(2.04, 130, 0x6fb7c9, 0.042)
+    ringB.rotation.x = Math.PI * 0.55
+    ringB.rotation.y = Math.PI * 0.3
+    group.add(ringA, ringB)
 
-    // -- core glow --
+    // -- layered core: tight bright center + soft halo --
     const coreMat = new THREE.SpriteMaterial({
       map: dotTex,
-      color: 0xffd9a0,
+      color: 0xfff3e0,
       transparent: true,
       opacity: 0,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
     const core = new THREE.Sprite(coreMat)
-    core.scale.setScalar(0.4)
+    core.scale.setScalar(0.26)
     group.add(core)
     disposables.push(coreMat)
+    const haloMat = new THREE.SpriteMaterial({
+      map: dotTex,
+      color: 0xffb454,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    })
+    const halo = new THREE.Sprite(haloMat)
+    halo.scale.setScalar(0.85)
+    group.add(halo)
+    disposables.push(haloMat)
+
+    // Fit the whole object (incl. rings) inside the viewport — this is what
+    // keeps it from overflowing the screen on portrait phones.
+    const WORLD_R = 2.15
+    const fitScale = () => {
+      const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z
+      const halfW = halfH * camera.aspect
+      const s = Math.min(1, (Math.min(halfW, halfH) * 0.86) / WORLD_R)
+      group.scale.setScalar(s)
+    }
 
     const resize = () => {
       const w = window.innerWidth
@@ -208,6 +284,7 @@ export default function Veil() {
       renderer.setSize(w, h, false)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
+      fitScale()
     }
     window.addEventListener('resize', resize)
     resize()
@@ -236,10 +313,16 @@ export default function Veil() {
       }
       posAttr.needsUpdate = true
 
-      // wireframe + core fade in as the shape completes
-      wireMat.opacity = smooth * 0.5
-      coreMat.opacity = smooth * 0.85
-      core.scale.setScalar(0.4 + Math.sin(t * 2.4) * 0.06 + smooth * 0.5)
+      // structure + glow fade in as the shape completes
+      wireMat.opacity = smooth * 0.26
+      innerMat.opacity = smooth * 0.34
+      rimMat.uniforms.uOpacity.value = smooth * 0.5
+      ringA.material.opacity = smooth * 0.55
+      ringB.material.opacity = smooth * 0.38
+      coreMat.opacity = smooth * 0.9
+      haloMat.opacity = smooth * 0.32
+      core.scale.setScalar(0.26 + Math.sin(t * 2.4) * 0.025 + smooth * 0.12)
+      halo.scale.setScalar(0.85 + Math.sin(t * 2.4 + 0.6) * 0.06 + smooth * 0.25)
 
       // occasional glitch jitter while still booting
       if (smooth < 0.98 && Math.random() < 0.06) {
@@ -252,7 +335,10 @@ export default function Veil() {
 
       group.rotation.y = t * 0.45
       group.rotation.x = Math.sin(t * 0.5) * 0.18
-      ring.rotation.z = -t * 0.9
+      inner.rotation.y = -t * 0.9
+      inner.rotation.z = t * 0.4
+      ringA.rotation.z = -t * 0.5
+      ringB.rotation.z = t * 0.35
 
       // hex progress readout (0x00 → 0xFF)
       if (hexRef.current)
